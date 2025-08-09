@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>cmbk</title>
+
+  <!-- Comfortaa font (warm + rounded) -->
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js CDN (no build required) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg1: #fffefe;
+      --accent1: #fb7185; /* pink */
+      --accent2: #60a5fa; /* blue */
+      --glass: rgba(255,255,255,0.7);
+      --muted: #64748b;
+      --card: #ffffff;
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --pastel-1: #7dd3fc;
+      --pastel-2: #fbcfe8;
+      --pastel-3: #c7f9cc;
+      --pastel-4: #fde68a;
+      --pastel-5: #d6b4ff;
+      --pastels: var(--pastel-1),var(--pastel-2),var(--pastel-3),var(--pastel-4),var(--pastel-5);
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: 'Comfortaa', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#fff 0%, #f0f9ff 45%, #fff0f6 100%);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      padding:22px;
+      box-sizing:border-box;
+    }
+
+    .app {
+      max-width:1150px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      gap:20px;
+      align-items:start;
+    }
+
+    header.hdr{
+      grid-column:1 / -1;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      margin-bottom:6px;
+    }
+
+    .title {
+      font-size:28px;
+      line-height:1.05;
+      color: #0b2545;
+    }
+    .subtitle { color:var(--muted); font-size:13px; margin-top:6px; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 6px 22px rgba(12,17,23,0.06);
+      padding:16px;
+      backdrop-filter: blur(6px);
+    }
+
+    /* Calendar */
+    .cal {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .cal .month {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .cal-grid {
+      display:grid;
+      grid-template-columns: repeat(7,1fr);
+      gap:6px;
+    }
+    .day-btn {
+      aspect-ratio:1/1;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      font-size:13px;
+      cursor:pointer;
+      border:2px solid transparent;
+    }
+    .day-btn:hover{ transform:translateY(-3px); transition:all .15s ease; }
+    .day-btn.active{ border-color: rgba(251,113,133,0.25); box-shadow: inset 0 -6px 18px rgba(251,113,133,0.06); }
+    .dot { width:8px; height:8px; border-radius:50%; margin-top:6px; }
+
+    /* Main charts area */
+    .charts {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:18px;
+    }
+
+    .chart-wrap {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:stretch;
+      padding:12px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(250,250,255,0.95));
+      box-shadow: 0 8px 30px rgba(15,23,42,0.04);
+    }
+
+    .chart-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .hint { font-size:12px; color:var(--muted); }
+
+    .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+
+    .pill{ padding:6px 10px; background:#f7f7fb; border-radius:999px; font-size:13px; display:inline-flex; gap:8px; align-items:center; }
+
+    .actions { display:flex; gap:8px; }
+
+    .btn {
+      padding:8px 12px;
+      border-radius:999px;
+      background:linear-gradient(90deg,var(--accent1), #a78bfa);
+      color:white;
+      border:none;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow: 0 8px 18px rgba(162,90,255,0.12);
+    }
+
+    .btn.ghost {
+      background:transparent;
+      color:var(--muted);
+      box-shadow:none;
+      border:1px dashed rgba(15,23,42,0.06);
+    }
+
+    footer.foot {
+      grid-column:1 / -1;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top:16px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    /* Modal */
+    .modal-back {
+      position:fixed;
+      inset:0;
+      background:rgba(2,6,23,0.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:60;
+    }
+    .modal {
+      width:100%;
+      max-width:460px;
+      border-radius:20px;
+      padding:18px;
+      background:white;
+      box-shadow:0 20px 60px rgba(2,6,23,0.3);
+    }
+
+    input[type="text"], input[type="number"], select {
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid #f0f2f6;
+      font-family:inherit;
+      font-size:14px;
+      box-sizing:border-box;
+    }
+
+    @media (max-width:980px){
+      .app{ grid-template-columns: 1fr; }
+      .charts{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <header class="hdr">
+      <div>
+        <div class="title">hello master ✨</div>
+        <div class="subtitle">plan in the morning, log at night. no guilt. just receipts.</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="date-picker" type="date" style="padding:8px 10px;border-radius:12px;border:1px solid #f0f2f6;" />
+        <button id="today-btn" class="btn" title="Go to today">today</button>
+      </div>
+    </header>
+
+    <!-- LEFT: Calendar -->
+    <aside class="card cal">
+      <div class="month">
+        <div>
+          <div style="font-weight:700">calendar</div>
+          <div style="font-size:12px;color:var(--muted)">tap a day to view / add</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button id="prev-month" class="btn ghost">◀</button>
+          <div id="month-label" style="font-weight:700;"></div>
+          <button id="next-month" class="btn ghost">▶</button>
+
+ 
+        </div>
+        <button id="weeklyReportBtn" style="display:none;">Weekly Report</button>
+      </div>
+
+      <div class="cal-grid" id="weekdays">
+        <!-- weekday headings -->
+      </div>
+
+      <div class="cal-grid" id="cal-grid" style="margin-top:6px;">
+        <!-- days -->
+      </div>
+
+      <div style="margin-top:8px;font-size:13px;color:var(--muted);">
+        <div><strong id="sel-date-label"></strong></div>
+        <div style="margin-top:6px">morning plan: <strong id="mor-percent">0%</strong> · night log: <strong id="night-percent">0%</strong></div>
+      </div>
+    </aside>
+
+    <!-- RIGHT: Charts -->
+    <main style="display:flex;flex-direction:column;gap:16px;">
+
+      <div class="charts">
+        <section class="chart-wrap">
+          <div class="chart-top">
+            <div>
+              <div style="font-weight:700">Morning Plan</div>
+              <div class="hint">Tap the chart to add what you intend to do.</div>
+            </div>
+            <div class="actions">
+              <button id="add-morning" class="btn">+ add</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;">
+            <canvas id="morningChart" style="width:100%;height:210px;"></canvas>
+          </div>
+
+          <div class="tags" id="morning-tags"></div>
+        </section>
+
+        <section class="chart-wrap">
+          <div class="chart-top">
+            <div>
+              <div style="font-weight:700">Night Log</div>
+              <div class="hint">At night, log what you actually did. Be honest.</div>
+            </div>
+            <div class="actions">
+              <button id="add-night" class="btn">+ add</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;">
+            <canvas id="nightChart" style="width:100%;height:210px;"></canvas>
+          </div>
+
+          <div class="tags" id="night-tags"></div>
+        </section>
+      </div>
+
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:14px;color:var(--muted)">Data saved locally in your browser (localStorage). Export JSON to back up.</div>
+        <div style="display:flex;gap:8px;">
+          <button id="copy-json" class="btn ghost">Copy JSON</button>
+          <button id="export-json" class="btn ghost">Export</button>
+          <button id="import-json-btn" class="btn ghost">Import</button>
+          <input id="import-json" type="file" accept=".json" style="display:none" />
+          <button id="reset-db" class="btn">Reset</button>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="foot">
+      <div>Made by Yug.</div>
+      <div style="display:flex;gap:8px;">
+        <button id="help" class="btn ghost">Help</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal (hidden until needed) -->
+  <div id="modal-root" style="display:none"></div>
+
+<script>
+/*
+  Single-file time-tracker
+  - Data shape in localStorage: { [YYYY-MM-DD]: { morning: [{label, mins}], night: [...] } }
+  - 24 hours = 1440 minutes. Any remaining minutes shown as "Unplanned / Free".
+*/
+
+(() => {
+  // Utilities
+  const pad = n => n.toString().padStart(2,'0');
+  const todayIso = () => (new Date()).toISOString().slice(0,10);
+
+  // DOM refs
+  const datePicker = document.getElementById('date-picker');
+  const todayBtn = document.getElementById('today-btn');
+  const selDateLabel = document.getElementById('sel-date-label');
+  const morPercent = document.getElementById('mor-percent');
+  const nightPercent = document.getElementById('night-percent');
+  const morningTags = document.getElementById('morning-tags');
+  const nightTags = document.getElementById('night-tags');
+  const modalRoot = document.getElementById('modal-root');
+
+  const copyBtn = document.getElementById('copy-json');
+  const exportBtn = document.getElementById('export-json');
+  const importBtn = document.getElementById('import-json-btn');
+  const importInput = document.getElementById('import-json');
+  const resetBtn = document.getElementById('reset-db');
+  const helpBtn = document.getElementById('help');
+
+  // calendar controls
+  const weekdaysContainer = document.getElementById('weekdays');
+  const calGrid = document.getElementById('cal-grid');
+  const monthLabel = document.getElementById('month-label');
+  const prevMonthBtn = document.getElementById('prev-month');
+  const nextMonthBtn = document.getElementById('next-month');
+
+  //weekly report button
+  const today = new Date();
+  if (today.getDay() === 0 ) { // 0 = Saturday
+    document.getElementById("weeklyReportBtn").style.display = "block";
+    }
+
+    document.getElementById("weeklyReportBtn").addEventListener("click", () => {
+    const weekData = getWeekData(); // Function that fetches last 7 days logs
+
+    const totalStudy = weekData.reduce((sum, day) => sum + day.study, 0);
+    const totalGym = weekData.reduce((sum, day) => sum + day.gym, 0);
+    const totalMisc = weekData.reduce((sum, day) => sum + day.misc, 0);
+    const totalWasted = weekData.reduce((sum, day) => sum + day.wasted, 0);
+
+    renderWeeklyReportChart([totalStudy, totalGym, totalMisc, totalWasted]);
+});
+
+function renderWeeklyReportChart(data) {
+    new Chart(document.getElementById("weeklyReportChart"), {
+        type: 'pie',
+        data: {
+            labels: ["Study", "Gym", "Misc", "Wasted Time"],
+            datasets: [{
+                data: data,
+                backgroundColor: ["blue", "green", "orange", "red"]
+            }]
+        }
+    });
+}
+
+
+
+  // charts
+  let morningChart = null;
+  let nightChart = null;
+
+  // palette for charts (pastel)
+  const COLORS = ['#7DD3FC', '#FBCFE8', '#BFDBFE', '#C7F9CC', '#FDE68A', '#D6B4FF', '#FCA5A5', '#A7F3D0', '#FFD8A8'];
+
+  // storage
+  const DBKEY = 'tz_time_db_v1';
+
+  function loadDB(){
+    try {
+      return JSON.parse(localStorage.getItem(DBKEY) || '{}');
+    } catch(e){
+      return {};
+    }
+  }
+  function saveDB(db){
+    localStorage.setItem(DBKEY, JSON.stringify(db));
+  }
+
+  // current selected date and calendar cursor
+  let selectedDate = todayIso();
+  let cursorMonth = new Date(); cursorMonth.setDate(1);
+
+  // init DOM
+  datePicker.value = selectedDate;
+
+  // calendar weekdays
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    const el = document.createElement('div'); el.textContent = d; el.style.color = '#94a3b8'; el.style.fontSize = '12px';
+    weekdaysContainer.appendChild(el);
+  });
+
+  function buildMonthGrid(){
+    calGrid.innerHTML = '';
+    const year = cursorMonth.getFullYear();
+    const month = cursorMonth.getMonth();
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month+1, 0);
+    const startDay = start.getDay();
+    monthLabel.textContent = start.toLocaleString(undefined,{month:'long', year:'numeric'});
+
+    // blanks
+    for(let i=0;i<startDay;i++) {
+      const el = document.createElement('div');
+      el.className = 'day-btn'; el.style.opacity = 0.0;
+      calGrid.appendChild(el);
+    }
+
+    const db = loadDB();
+    for(let d=1; d<=end.getDate(); d++){
+      const dt = new Date(year, month, d);
+      const iso = dt.toISOString().slice(0,10);
+      const btn = document.createElement('button');
+      btn.className = 'day-btn';
+      btn.innerHTML = `<div>${d}</div>`;
+      btn.onclick = () => { selectedDate = iso; datePicker.value = iso; rerenderAll(); };
+      // marker if data exists
+      const has = db[iso] && ((db[iso].morning?.length||0) + (db[iso].night?.length||0))>0;
+      if(has){
+        const dot = document.createElement('div'); dot.className='dot'; dot.style.background = 'var(--accent1)'; 
+        btn.appendChild(dot);
+      }
+      if(iso === selectedDate) btn.classList.add('active');
+      calGrid.appendChild(btn);
+    }
+    // fill to complete grid rows (optional)
+  }
+
+  // build pie data with remaining minutes
+  function buildPieData(arr){
+    if(!arr || arr.length===0) return [{name:'Unplanned / Free', value:1440}];
+    const total = arr.reduce((s,x)=>s+x.mins,0);
+    const remaining = Math.max(0, 1440 - total);
+    const mapped = arr.map(a => ({name:a.label, value:a.mins}));
+    if(remaining>0) mapped.push({name:'Unplanned / Free', value:remaining});
+    // filter out zero slices
+    return mapped.filter(s => s.value>0);
+  }
+
+  // percent used
+  function percentUsed(arr){
+    const used = (arr||[]).reduce((s,x)=>s+x.mins,0);
+    return Math.round( (used / 1440) * 100 );
+  }
+
+  // render tags below charts (with delete)
+  function renderTags(side, data){
+    const container = side === 'morning' ? morningTags : nightTags;
+    container.innerHTML = '';
+    (data || []).forEach((e,idx) => {
+      const pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.style.background = side==='morning' ? '#fff1f2' : '#f5f3ff';
+      pill.innerHTML = `<span>${e.label} • ${Math.floor(e.mins/60)}h ${e.mins%60}m</span>`;
+      const del = document.createElement('button'); del.textContent = '✕'; del.style.border='none'; del.style.background='transparent';
+      del.style.cursor='pointer'; del.style.opacity='0.6'; del.onclick = () => { deleteEntry(side, idx); };
+      pill.appendChild(del);
+      container.appendChild(pill);
+    });
+    const addBtn = document.createElement('button');
+    addBtn.className = 'pill'; addBtn.style.background = '#eff6ff'; addBtn.textContent = '+ add';
+    addBtn.onclick = () => openModal(side);
+    container.appendChild(addBtn);
+  }
+
+  // create or update charts
+  function initCharts(){
+    const ctxM = document.getElementById('morningChart').getContext('2d');
+    morningChart = new Chart(ctxM, {
+      type:'doughnut',
+      data: { labels: [], datasets:[{ data:[], backgroundColor:[] }] },
+      options: {
+        plugins: { legend:{display:false}, tooltip:{padding:8} },
+        onClick: (evt, activeEls) => openModal('morning'), // tap to add
+        cutout: '56%',
+        responsive:true,
+        maintainAspectRatio:false
+      }
+    });
+
+    const ctxN = document.getElementById('nightChart').getContext('2d');
+    nightChart = new Chart(ctxN, {
+      type:'doughnut',
+      data: { labels: [], datasets:[{ data:[], backgroundColor:[] }] },
+      options: {
+        plugins: { legend:{display:false}, tooltip:{padding:8} },
+        onClick: (evt, activeEls) => openModal('night'),
+        cutout: '56%',
+        responsive:true,
+        maintainAspectRatio:false
+      }
+    });
+  }
+
+  function updateChart(chart, pieData){
+    chart.data.labels = pieData.map(p => p.name);
+    chart.data.datasets[0].data = pieData.map(p => Math.round(p.value));
+    // map colors
+    chart.data.datasets[0].backgroundColor = pieData.map((_,i) => COLORS[i % COLORS.length]);
+    chart.update();
+  }
+
+  // CRUD on entries
+  function addEntry(side, label, hours, minutes){
+    const mins = Math.max(0, Math.round((Number(hours)||0) * 60 + (Number(minutes)||0)));
+    if(!label || mins<=0){ alert('Give a label and positive time.'); return; }
+    const db = loadDB();
+    db[selectedDate] = db[selectedDate] || { morning: [], night: [] };
+    db[selectedDate][side].push({ label: label.trim(), mins });
+    saveDB(db);
+    rerenderAll();
+  }
+
+  function deleteEntry(side, idx){
+    const db = loadDB();
+    if(!db[selectedDate]) return;
+    db[selectedDate][side].splice(idx,1);
+    saveDB(db);
+    rerenderAll();
+  }
+
+  // modal for adding
+  function openModal(side){
+    modalRoot.style.display = 'block';
+    modalRoot.innerHTML = `
+      <div class="modal-back">
+        <div class="modal" role="dialog" aria-modal="true">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <div style="font-weight:700">${side==='morning'?'Add Morning Plan':'Add Night Log'}</div>
+              <div style="font-size:12px;color:var(--muted)">Selected date: ${selectedDate}</div>
+            </div>
+            <button id="modal-close" style="border:none;background:transparent;font-size:20px;cursor:pointer">✕</button>
+          </div>
+
+          <div style="display:grid;gap:8px">
+            <input id="m-label" type="text" placeholder="What (eg: study, sleep)" />
+            <div style="display:flex;gap:8px;">
+              <input id="m-hours" type="number" min="0" placeholder="hours" />
+              <input id="m-mins" type="number" min="0" placeholder="minutes" />
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button id="modal-save" class="btn">Save</button>
+              <button id="modal-cancel" class="btn ghost">Cancel</button>
+            </div>
+            <div style="font-size:12px;color:var(--muted)">Tip: Use rough chunks. Total day = 24 hours (1440 minutes).</div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('modal-close').onclick = closeModal;
+    document.getElementById('modal-cancel').onclick = closeModal;
+    document.getElementById('modal-save').onclick = () => {
+      const label = document.getElementById('m-label').value;
+      const hours = document.getElementById('m-hours').value || 0;
+      const mins = document.getElementById('m-mins').value || 0;
+      addEntry(side, label, hours, mins);
+      closeModal();
+    };
+  }
+
+  function closeModal(){
+    modalRoot.style.display = 'none';
+    modalRoot.innerHTML = '';
+  }
+
+  // rerender everything for current selectedDate
+  function rerenderAll(){
+    // update calendar active
+    buildMonthGrid();
+
+    const db = loadDB();
+    const day = db[selectedDate] || { morning: [], night: [] };
+    selDateLabel.textContent = selectedDate;
+    morPercent.textContent = percentUsed(day.morning) + '%';
+    nightPercent.textContent = percentUsed(day.night) + '%';
+
+    // tags
+    renderTags('morning', day.morning);
+    renderTags('night', day.night);
+
+    // update charts
+    const mData = buildPieData(day.morning);
+    const nData = buildPieData(day.night);
+    updateChart(morningChart, mData);
+    updateChart(nightChart, nData);
+  }
+
+  // copy/export/import
+  copyBtn.onclick = async () => {
+    try {
+      const txt = JSON.stringify(loadDB(),null,2);
+      await navigator.clipboard.writeText(txt);
+      alert('JSON copied to clipboard.');
+    } catch(e){ alert('Copy failed.'); }
+  };
+
+  exportBtn.onclick = () => {
+    const a = document.createElement('a');
+    const blob = new Blob([JSON.stringify(loadDB(),null,2)], { type:'application/json' });
+    a.href = URL.createObjectURL(blob);
+    a.download = `time-tracker-backup-${selectedDate}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  importBtn.onclick = () => importInput.click();
+  importInput.onchange = (ev) => {
+    const f = ev.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if(confirm('Replace local data with imported JSON?')) {
+          saveDB(parsed);
+          rerenderAll();
+        }
+      } catch(err){
+        alert('Invalid JSON file.');
+      }
+    };
+    reader.readAsText(f);
+    // reset file input
+    importInput.value = '';
+  };
+
+  resetBtn.onclick = () => {
+    if(confirm('Reset all saved data?')) {
+      localStorage.removeItem(DBKEY);
+      rerenderAll();
+    }
+  };
+
+  helpBtn.onclick = () => {
+    alert('Plan in the morning (tap left chart). Log at night (tap right chart). Use export to backup. If you want CSV export, editing entries, or backend sync, ask and I\'ll add it.');
+  };
+
+  // quick controls
+  document.getElementById('add-morning').onclick = () => openModal('morning');
+  document.getElementById('add-night').onclick = () => openModal('night');
+  todayBtn.onclick = () => { selectedDate = todayIso(); datePicker.value = selectedDate; cursorMonth = new Date(); cursorMonth.setDate(1); rerenderAll(); };
+
+  // date picker changes
+  datePicker.onchange = (e) => { selectedDate = e.target.value; rerenderAll(); };
+
+  prevMonthBtn.onclick = () => { cursorMonth = new Date(cursorMonth.getFullYear(), cursorMonth.getMonth()-1, 1); buildMonthGrid(); };
+  nextMonthBtn.onclick = () => { cursorMonth = new Date(cursorMonth.getFullYear(), cursorMonth.getMonth()+1, 1); buildMonthGrid(); };
+
+  // initial setup
+  initCharts();
+  rerenderAll();
+
+  // expose to console for quick tinkering (dev-friendly)
+  window.TimeTracker = {
+    loadDB, saveDB, getSelectedDate: ()=>selectedDate, setSelectedDate: (d)=>{ selectedDate=d; datePicker.value=d; rerenderAll(); }
+  };
+})();
+</script>
+</body>
+</html>
